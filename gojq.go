@@ -86,6 +86,47 @@ func (jq *JQ) Query(exp string) (interface{}, error) {
 	return context, nil
 }
 
+// Query queries against the JSON with the expression passed in. The exp is separated by dots (".")
+func (jq *JQ) QueryRef(exp string) (*interface{}, error) {
+	if exp == "." {
+		return &jq.Data, nil
+	}
+	paths, err := gosplitargs.SplitArgs(exp, "\\.", false)
+	if err != nil {
+		return nil, err
+	}
+	var context interface{} = &jq.Data
+	for _, path := range paths {
+		if len(path) >= 3 && strings.HasPrefix(path, "[") && strings.HasSuffix(path, "]") {
+			// array
+			index, err := strconv.Atoi(path[1 : len(path)-1])
+			if err != nil {
+				return nil, err
+			}
+			if v, ok := context.([]interface{}); ok {
+				if len(v) <= index {
+					return nil, errors.New(fmt.Sprint(path, " index out of range."))
+				}
+				context = v[index]
+			} else {
+				return nil, errors.New(fmt.Sprint(path, " is not an array. ", v))
+			}
+		} else {
+			// map
+			if v, ok := context.(map[string]interface{}); ok {
+				if _, ok := v[path]; ok {
+					context = v[path]
+				} else {
+					return nil, errors.New(fmt.Sprint(path, " does not exist."))
+				}
+			} else {
+				return nil, errors.New(fmt.Sprint(path, " is not an object. ", v))
+			}
+		}
+	}
+	return &context, nil
+}
+
 // QueryToMap queries against the JSON with the expression passed in, and convert to a map[string]interface{}
 func (jq *JQ) QueryToMap(exp string) (map[string]interface{}, error) {
 	r, err := jq.Query(exp)
