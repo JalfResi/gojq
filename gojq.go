@@ -87,7 +87,7 @@ func (jq *JQ) Query(exp string) (interface{}, error) {
 }
 
 // Query queries against the JSON with the expression passed in. The exp is separated by dots (".")
-func (jq *JQ) QueryRef(exp string) (*interface{}, error) {
+func (jq *JQ) QueryRef(exp string) (interface{}, error) {
 	if exp == "." {
 		return &jq.Data, nil
 	}
